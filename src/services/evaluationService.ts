@@ -41,10 +41,23 @@ export async function evaluateAnswer(answer: string, roleId: string, type: Quest
   return { technical, problemSolving, communication, clarity, overall, strength, improvement, spoken }
 }
 
-export function summarize(list: AnswerEval[]) {
-  const avg = (k: keyof AnswerEval) => clamp(list.reduce((s, e) => s + (e[k] as number), 0) / list.length)
+export interface ReportQ { text: string; category: string; status: 'answered' | 'skipped'; answer: string; scores: AnswerEval | null }
+export interface Summary { technical: number; problemSolving: number; communication: number; clarity: number; overall: number; decision: Decision; answered: number; skipped: number }
+export interface Report { role_id: string; role_title: string; candidate: string; setName: string; questions: ReportQ[]; summary: Summary; strengths: string[]; improvements: string[]; suggestions: string[]; id?: number; completed?: string }
+
+/** Category scores average over ALL questions; a skipped question contributes 0 (it is never given a per-question score). */
+export function summarizeQ(qs: ReportQ[]): Summary {
+  const avg = (k: 'technical' | 'problemSolving' | 'communication' | 'clarity') => clamp(qs.reduce((s, q) => s + (q.scores ? q.scores[k] : 0), 0) / qs.length)
   const technical = avg('technical'), problemSolving = avg('problemSolving'), communication = avg('communication'), clarity = avg('clarity')
   const overall = clamp(technical * 0.4 + problemSolving * 0.3 + communication * 0.2 + clarity * 0.1)
   const decision: Decision = overall >= 80 ? 'SELECTED' : overall >= 65 ? 'FURTHER REVIEW' : 'NOT SELECTED'
-  return { technical, problemSolving, communication, clarity, overall, decision }
+  const answered = qs.filter(q => q.status === 'answered').length
+  return { technical, problemSolving, communication, clarity, overall, decision, answered, skipped: qs.length - answered }
+}
+export function buildFeedback(qs: ReportQ[], d: Decision) {
+  const a = qs.filter(q => q.scores)
+  const uniq = (x: string[]) => [...new Set(x)]
+  const suggestions = [d === 'SELECTED' ? 'Keep giving structured answers with a concrete example.' : 'Use a clear structure: concept, example, trade-off.', 'Mention the key terms for the role explicitly.']
+  if (a.length < qs.length) suggestions.push('Try answering every question, even briefly — skipped questions score zero.')
+  return { strengths: a.length ? uniq(a.map(q => q.scores!.strength)) : ['No answers were given, so no strengths could be identified.'], improvements: uniq(a.map(q => q.scores!.improvement)), suggestions }
 }

@@ -30,11 +30,41 @@ export const ROLES: Role[] = [
     q1: 'What principles do you follow to write maintainable, well-designed software?', q2: 'Your application suddenly becomes slow in production. How would you systematically identify and solve the issue?' },
 ]
 
-export function buildQuestions(r: Role): Question[] {
+export const CAT: Record<QuestionType, string> = { technical: 'Technical Understanding', problem: 'Problem Solving', behavioral: 'Situational / Behavioral' }
+export const SET_COUNT = 5
+// Sets 2–5 per role: different concepts (technical) and different scenarios (problem solving). Set 1 = the original questions.
+const TOPICS: Record<string, string[]> = {
+  java: ['garbage collection and memory management', 'the Java Collections framework (List, Set, Map)', 'multithreading and synchronization', 'exception handling and try-with-resources'],
+  python: ['decorators and generators', 'lists, tuples, dictionaries and sets', 'the GIL and concurrency', 'virtual environments and packaging'],
+  ds: ['the bias–variance trade-off', 'handling missing data and outliers', 'precision, recall and the F1 score', 'cross-validation'],
+  mle: ['gradient descent and the learning rate', 'batch versus online inference', 'data and model versioning', 'model monitoring in production'],
+  ai: ['attention in transformers', 'fine-tuning versus prompt engineering', 'embeddings and vector search', 'evaluating generative models'],
+  web: ['the browser rendering pipeline', 'REST versus GraphQL', 'authentication with sessions and tokens', 'responsive and accessible design'],
+  da: ['SQL joins and aggregations', 'choosing the right chart for a message', 'A/B testing and statistical significance', 'data quality checks'],
+  se: ['the SOLID principles', 'unit versus integration testing', 'branching strategies and code review', 'time and space complexity'],
+}
+const SCEN: Record<string, string[]> = {
+  java: ['a Java application is consuming too much memory', 'two threads intermittently corrupt shared data', 'an API endpoint takes ten seconds under load', 'a NullPointerException appears in production for only some users'],
+  python: ['a script runs out of memory on a very large CSV file', 'a web API returns wrong results only occasionally', 'a dependency upgrade breaks your application', 'a nightly job silently stops running'],
+  ds: ['your classes are heavily imbalanced', 'model accuracy is high but the business impact is poor', 'stakeholders do not trust your model', 'you discover your features leak future information'],
+  mle: ['training is too slow on a large dataset', 'inference latency exceeds your target', 'production data differs from training data', 'a new model version performs worse in production'],
+  ai: ['a chatbot confidently states false facts', 'retrieval returns irrelevant documents', 'model inference costs are far too high', 'users report biased outputs'],
+  web: ['a page layout breaks on mobile devices', 'a user reports a cross-site scripting vulnerability', 'an API call fails intermittently in production', 'a page scores poorly on Lighthouse performance'],
+  da: ['two reports show different revenue numbers', 'a dashboard query is very slow', 'a stakeholder challenges your conclusion', 'a data source changes its format overnight'],
+  se: ['a release introduces a critical bug', 'you inherit a legacy codebase with no tests', 'a service crashes under heavy load', 'two services disagree about the same data'],
+}
+const BEHAV = ['Imagine you are given a difficult task with a very short deadline. How would you approach the situation?',
+  'Tell me about a time you made a mistake in a project. How did you handle it and what did you learn?',
+  'Imagine you disagree with a teammate about the best way to implement a feature. How would you handle the disagreement?',
+  'You are asked to learn an unfamiliar technology in one week. How would you go about it?',
+  'Several urgent tasks arrive at the same time. How do you decide what to do first?']
+export const setName = (r: Role, n: number) => `${r.id.toUpperCase()}-SET-${n + 1}`
+export function buildQuestions(r: Role, set = 0): Question[] {
+  const n = ((set % SET_COUNT) + SET_COUNT) % SET_COUNT
   return [
-    { text: r.q1, type: 'technical' },
-    { text: r.q2, type: 'problem' },
-    { text: 'Imagine you are given a difficult task with a very short deadline. How would you approach the situation?', type: 'behavioral' },
+    { text: n === 0 ? r.q1 : `Can you explain ${TOPICS[r.id][n - 1]}, and how it applies in ${r.title} work?`, type: 'technical' },
+    { text: n === 0 ? r.q2 : `Imagine ${SCEN[r.id][n - 1]}. How would you investigate and resolve it?`, type: 'problem' },
+    { text: BEHAV[n], type: 'behavioral' },
   ]
 }
 export const intro = (r: Role) =>
